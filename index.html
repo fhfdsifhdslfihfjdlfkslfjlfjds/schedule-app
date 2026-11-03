@@ -6345,24 +6345,24 @@ function fmtHandoverTime(ms) {
 function buildHandoverSummary(items) {
   const now = new Date();
   const dateLabel = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}（${WEEKDAYS_JP[now.getDay()]}）`;
-  // 1件を「・先頭行 + 続き行（記号なし）」に整形
+  // 1件を「・先頭行 ＋ 続き行（全角スペースでぶら下げ）」に整形
   const fmtEntry = h => {
     const lines = String(h.text || "").split(/\r?\n/);
-    const first = "・" + (lines[0] || "");
-    const rest = lines.slice(1);
-    let out = rest.length ? first + "\n" + rest.join("\n") : first;
-    if ((h.files || []).length) out += "\n" + "［添付: " + h.files.map(f => f.name).join("、") + "］";
-    return out;
+    const out = ["・" + (lines[0] || "")];
+    // 「・」の行以外は先頭に全角スペースを入れて、ぶら下がりを揃える
+    for (const l of lines.slice(1)) out.push(l.trim() ? "　" + l : l);
+    if ((h.files || []).length) out.push("　［添付: " + h.files.map(f => f.name).join("、") + "］");
+    return out.join("\n");
   };
   const sections = [];
   for (const key of HANDOVER_CAT_KEYS) {
     const entries = items.filter(h => normHandoverCat(h.category) === key);
     // 共有/不都合/不便は該当が無ければ省略（引き継ぎは常に記載）
     if (key !== "hikitsugi" && entries.length === 0) continue;
-    const body = entries.length ? entries.map(fmtEntry).join("\n") : "・";
+    const body = entries.length ? entries.map(fmtEntry).join("\n\n") : "・";
     sections.push(`${HANDOVER_CATS[key].label}\n${body}`);
   }
-  return `-------------------\n${dateLabel}\n${sections.join("\n\n")}`;
+  return `${dateLabel}\n${sections.join("\n\n")}`;
 }
 // クリップボードへコピー（navigator.clipboard 優先、file:// 等のフォールバック付き）
 async function copyToClipboard(textStr) {
